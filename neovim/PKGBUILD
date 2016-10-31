@@ -1,0 +1,44 @@
+pkgname=neovim
+pkgver=0.1.5
+pkgrel=1
+pkgdesc='Fork of Vim aiming to improve user experience, plugins, and GUIs'
+arch=('i686' 'x86_64')
+url='https://neovim.io'
+license=('custom:neovim')
+depends=('gperf')  # 'libvterm' 'libtermkey' 'libuv' 'msgpack-c' 'unibilium'
+makedepends=('cmake')  # 'luajit' 'lua51-mpack' 'lua51-lpeg'
+source=("https://github.com/neovim/neovim/archive/v${pkgver}.tar.gz")
+sha256sums=('f286ff7994ef1835272285425d65804063f112c91925fee3ef8865282a6d2b7e')
+install=neovim.install
+
+
+build() {
+  cd ${pkgname}-${pkgver}
+
+  # Build bundled third-party dependencies
+  mkdir -p .deps
+  cd .deps
+  cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ../third-party/
+  make
+  cd ..
+
+  # Build Neovim
+  mkdir -p build
+  cd build
+  cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        ../
+  make
+}
+
+check() {
+  cd "${pkgname}-${pkgver}/build"
+  ./bin/nvim --version
+  ./bin/nvim --headless -u NONE -i NONE -c ':quit'
+}
+
+package() {
+  cd "${pkgname}-${pkgver}/build"
+  make DESTDIR="${pkgdir}" install
+  install -Dm644 "${srcdir}/neovim-${pkgver}"/LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
